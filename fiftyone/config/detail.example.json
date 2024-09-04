@@ -1,0 +1,11 @@
+{
+  "dataset": [
+    {
+      "name": "my-dataset",
+      "description": "this is my new dataset",
+      "type": "yolo",
+      "data_dir": "db/my_new_dataset_dir",
+      "img_counts": "10000"
+    }
+  ]
+}
