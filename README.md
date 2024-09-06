@@ -5,7 +5,6 @@ The repository is still under development.
 ## Usage
 build the docker image for fiftyone.
 ```bash
-cd fiftyone
 ./scripts/build_service.sh
 ```
 
