@@ -1,12 +1,15 @@
 import fiftyone.types as dbTypes
 import json
-from typing import Any, Dict, List
-import yaml
+from typing import Dict, List
+
+DBTYPES: Dict[str, dbTypes.Dataset] = {
+  "yolo": dbTypes.YOLOv4Dataset
+}
 
 class dbDetail:
   name: str
   description: str
-  type: str
+  type: dbTypes.Dataset
   data_dir: str
   img_counts: int
 
@@ -20,7 +23,7 @@ class dbDetail:
     """
     self.name = detail["name"]
     self.description = detail["description"]
-    self.type = detail["type"]
+    self.type = DBTYPES[detail["type"]]
     self.data_dir = detail["data_dir"]
     self.img_counts = detail["img_counts"]
 
@@ -29,9 +32,8 @@ class dbDetail:
 
 class dbParams:
   detail: List[dbDetail] = []
-  types: Dict[str, Any] = {}
 
-  def __init__(self, detail_file=None, type_file=None) -> None:
+  def __init__(self, detail_file=None) -> None:
     """Construct the params for the databases
 
     Args:
@@ -43,12 +45,6 @@ class dbParams:
 
     with open(detail_file) as f:
       self.detail = [dbDetail(d) for d in json.load(f)["dataset"]]
-    self.load_types()
 
   def __repr__(self) -> str:
-    return f"detail: {self.detail}, types: {self.types}"
-
-  def load_types(self):
-    self.types = {
-      "yolo": dbTypes.YOLOv4Dataset
-    }
+    return f"detail: {self.detail}"
