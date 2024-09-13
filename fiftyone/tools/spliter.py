@@ -1,20 +1,27 @@
 import argparse
 import fiftyone as fo
 import fiftyone.utils.random as four
+from os import getcwd
 import os.path as osp
-import sys
 from typing import Any
 
-sys.path.append(osp.abspath("/root/fiftyone"))
-from utils.config import DBTYPES
+import sys
+sys.path.insert(0, osp.dirname(osp.dirname(__file__)))
+from formats import CvatImporter, Exporter
+from formats.detail import dbDetail
+from log import log
 
 def load_argument() -> (Any | argparse.Namespace):
   parser = argparse.ArgumentParser(
     description="Split the raw data into train, val, and test subsets."
   )
   parser.add_argument(
-    '-t', "--type", type=str, choices=["yolo"], default="yolo",
+    "--in_type", type=str, choices=["yolov4", "yolov5"], default="yolov4",
     help="The imported dataset format."
+  )
+  parser.add_argument(
+    "--out_type", type=str, choices=["yolov4", "yolov5"], default="",
+    help="The exported dataset format."
   )
   parser.add_argument(
     '-d', "--data_dir", type=str, required=True,
@@ -32,51 +39,49 @@ def load_argument() -> (Any | argparse.Namespace):
     default=[0.8, 0.1, 0.1],
     help="The subset sizes of train, val, and test. You can omit the test size, default: 0.8 0.1 0.1"
   )
+  # parser.add_argument(
+  #   '-f', "--formula", type=str, default="random",
+  #   choices=["random", "weighted", "balanced"],
+  #   help="The split formula."
+  # )
 
   args = parser.parse_args()
   if args.data_dir[-1] == '/':
     args.data_dir = args.data_dir[:-1]
   if args.name == "":
     args.name = osp.basename(args.data_dir)
-
+  if args.out_type == "":
+    args.out_type = args.in_type
   return args
 
 if __name__ == "__main__":
   args = load_argument()
+  test: bool = len(args.sizes) >= 3
 
-  dataset = fo.Dataset.from_dir(
-    dataset_type=DBTYPES[args.type],
-    dataset_dir=args.data_dir,
-    images_path=args.images_list,
-    name=args.name,
-    overwrite=True
-  )
+  dataset = CvatImporter.load_yolov4(
+    dbDetail.from_required(args.name, args.in_type, args.data_dir),
+    args.images_list)
 
-  # declare the sizes of each subsets
-  subsets = {"train": args.sizes[0], "val": args.sizes[1]}
-  if len(args.sizes) >= 3:
-    subsets.update({"test": args.sizes[2]})
-  four.random_split(dataset, subsets)
+  try:
+    subsets = CvatImporter.get_subsets(args.sizes)
+  except ValueError as e:
+    log.err(f"tools.spliter.py: {e}")
+
+  # if args.formula == "random":
+  #   four.random_split(dataset, subsets)
+  # elif args.formula == "weighted":
+  #   four.random_split(dataset, subsets)
+  # elif args.formula == "balanced":
+  #   four.random_split(dataset, subsets)
 
   # split the dataset
-  train_view: fo.Dataset = dataset.match_tags("train")
-  val_view: fo.Dataset = dataset.match_tags("val")
-  test_view: fo.Dataset = None
+  views: list[fo.Dataset] = [dataset.match_tags("train"), dataset.match_tags("val")]
   if len(args.sizes) >= 3:
-    test_view = dataset.match_tags("test")
+    views.append(dataset.match_tags("test"))
 
   # export the split subsets
-  target_path = f"db/{args.name}"
-  train_view.export(
-    export_dir=f"{target_path}_train",
-    dataset_type=DBTYPES[args.type]
-  )
-  val_view.export(
-    export_dir=f"{target_path}_val",
-    dataset_type=DBTYPES[args.type]
-  )
-  if len(args.sizes) >= 3:
-    test_view.export(
-      export_dir=f"{target_path}_test",
-      dataset_type=DBTYPES[args.type]
-    )
+  try:
+    for split, view in zip(subsets, views):
+      Exporter.dump(view, dbDetail.from_required(args.name, args.out_type), split)
+  except Exception as e:
+    log.err(f"tools.spliter.py: {e}")

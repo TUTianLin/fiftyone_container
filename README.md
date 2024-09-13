@@ -15,14 +15,10 @@ build the docker image for fiftyone.
 
 run the test
 ```bash
-root@my-pc:~/fiftyone# python test.py
+root@my-pc:~/fiftyone# python main.py
 ```
 
 ## Reminder
-yolo format needed to be like this. You may have to tweak file name in test.py if your txt file is not `train.txt`.
-```bash
-- my-yolo-dataset
-    |--- data/     # imgs
-    |--- obj.names # classes
-    |--- train.txt # the list of imgs' locations
-```
+Dataset format exported from CVAT may be inconsistent with fiftyone server, please compare two versions and make amendment by passing `XXX.txt` as image_list for `YOLO 1.0`(`yolov4`)[1].
+
+[1]: I only corporate the yolov4 for different image_list text file name. If you encounter any other issue or wish for new feature, please make a new request in issues.

@@ -1,11 +1,13 @@
 # database
 config/*
-!config/detail.example.json
-db/
+!config/*.example.*
+db/*
 
 # python caches
 __pycache__
 
+# vscode
+.vscode
+
 # test
 *.ipynb
-# test.py
